@@ -159,6 +159,12 @@ input:focus {
   border-color: #f4b8b0;
 }
 
+.alert-success {
+  color: var(--ok);
+  background: #ecfdf3;
+  border-color: #abefc6;
+}
+
 .error-list {
   margin-top: 12px;
   padding: 10px 14px;
@@ -181,6 +187,61 @@ input:focus {
   border-radius: 8px;
   line-height: 1.55;
   white-space: pre;
+}
+
+.steps {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.step strong,
+.step code,
+.step p {
+  display: block;
+}
+
+.step code {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  color: #344054;
+  font-size: 13px;
+}
+
+.step p {
+  margin: 8px 0 0;
+  color: var(--danger);
+}
+
+.step span {
+  align-self: start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f2f4f7;
+}
+
+.step.success span {
+  color: var(--ok);
+  background: #dcfae6;
+}
+
+.step.failed span {
+  color: var(--danger);
+  background: #fee4e2;
 }
 
 .button {

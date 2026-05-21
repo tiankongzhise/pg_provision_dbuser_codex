@@ -17,6 +17,7 @@ import (
 type Server struct {
 	cfg       config.Config
 	drafts    *provision.DraftStore
+	executor  *provision.Executor
 	mux       *http.ServeMux
 	sessions  *session.Manager
 	templates *template.Template
@@ -31,6 +32,7 @@ func New(cfg config.Config) (*Server, error) {
 	server := &Server{
 		cfg:       cfg,
 		drafts:    provision.NewDraftStore(15 * time.Minute),
+		executor:  provision.NewExecutor(cfg.Postgres, provision.NewPGXRunner),
 		mux:       http.NewServeMux(),
 		sessions:  session.NewManager(cfg.AppSessionSecret),
 		templates: templates,
@@ -52,7 +54,7 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /", s.requireAuth(http.HandlerFunc(s.handleHome)))
 	s.mux.Handle("GET /api/password", s.requireAuth(http.HandlerFunc(s.handlePassword)))
 	s.mux.Handle("POST /preview", s.requireAuth(http.HandlerFunc(s.handlePreview)))
-	s.mux.Handle("POST /execute", s.requireAuth(http.HandlerFunc(s.handleExecutePending)))
+	s.mux.Handle("POST /execute", s.requireAuth(http.HandlerFunc(s.handleExecute)))
 	s.mux.HandleFunc("GET /login", s.handleLoginPage)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
 	s.mux.HandleFunc("POST /logout", s.handleLogout)
@@ -122,7 +124,7 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) handleExecutePending(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	username, ok := s.sessions.Username(r)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -142,10 +144,12 @@ func (s *Server) handleExecutePending(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result := s.executor.Execute(r.Context(), draft.Request)
+	s.drafts.Delete(draft.ID)
 	s.render(w, "result.html", map[string]any{
-		"Title": "执行结果",
-		"Draft": draft,
-		"Error": "PostgreSQL 执行流程将在下一步接入，当前已完成草稿绑定校验",
+		"Title":  "执行结果",
+		"Draft":  draft,
+		"Result": result,
 	})
 }
 
