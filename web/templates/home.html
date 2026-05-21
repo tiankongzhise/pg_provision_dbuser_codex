@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">PostgreSQL</p>
+          <h1>{{.Title}}</h1>
+        </div>
+        <form method="post" action="/logout">
+          <button class="button secondary" type="submit">退出</button>
+        </form>
+      </div>
+      <div class="summary">
+        <span>当前目标</span>
+        <strong>{{.TargetSummary}}</strong>
+      </div>
+      {{if .Message}}<div class="alert alert-danger">{{.Message}}</div>{{end}}
+      {{if .Errors}}
+      <div class="error-list">
+        {{range .Errors}}<p>{{.Message}}</p>{{end}}
+      </div>
+      {{end}}
+      <form class="form provision-form" method="post" action="/preview">
+        <div class="grid two">
+          <label>
+            <span>业务用户名</span>
+            <input name="role_name" value="{{.Values.RoleName}}" required maxlength="63" pattern="[A-Za-z_][A-Za-z0-9_]{0,62}" placeholder="app_user">
+          </label>
+          <label>
+            <span>数据库名</span>
+            <input name="database_name" value="{{.Values.DatabaseName}}" required maxlength="63" pattern="[A-Za-z_][A-Za-z0-9_]{0,62}" placeholder="app_db">
+          </label>
+        </div>
+        <label>
+          <span>业务用户密码</span>
+          <div class="input-row">
+            <input id="role-password" name="role_password" type="password" required minlength="12" autocomplete="new-password">
+            <button class="button secondary" id="generate-password" type="button">生成强密码</button>
+          </div>
+        </label>
+        <div class="actions">
+          <button class="button" type="submit">预览 SQL</button>
+          <a class="button secondary" href="/healthz">检查服务状态</a>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

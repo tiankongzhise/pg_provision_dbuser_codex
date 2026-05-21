@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">PostgreSQL</p>
+          <h1>{{.Title}}</h1>
+        </div>
+        <form method="post" action="/logout">
+          <button class="button secondary" type="submit">退出</button>
+        </form>
+      </div>
+      {{if .Error}}<div class="alert alert-danger">{{.Error}}</div>{{end}}
+      {{if .Draft}}
+      <div class="summary">
+        <span>草稿对象</span>
+        <strong>{{.Draft.Request.RoleName}} / {{.Draft.Request.DatabaseName}}</strong>
+      </div>
+      {{end}}
+      {{if .Result}}
+      {{if .Result.Success}}
+      <div class="alert alert-success">执行完成，业务用户和数据库已创建并授权。</div>
+      {{else}}
+      <div class="alert alert-danger">执行未完成，请查看失败步骤。系统不会自动删除已经创建的对象。</div>
+      {{end}}
+      <ol class="steps">
+        {{range .Result.Steps}}
+        <li class="step {{.Status}}">
+          <div>
+            <strong>{{.Name}}</strong>
+            {{if .DisplaySQL}}<code>{{.DisplaySQL}}</code>{{end}}
+            {{if .Error}}<p>{{.Error}}</p>{{end}}
+          </div>
+          <span>{{.Status}}</span>
+        </li>
+        {{end}}
+      </ol>
+      {{end}}
+      <div class="actions">
+        <a class="button secondary" href="/">返回首页</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

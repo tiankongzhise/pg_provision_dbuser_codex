@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">PostgreSQL</p>
+          <h1>{{.Title}}</h1>
+        </div>
+        <form method="post" action="/logout">
+          <button class="button secondary" type="submit">退出</button>
+        </form>
+      </div>
+      <div class="summary">
+        <span>当前目标</span>
+        <strong>{{.TargetSummary}}</strong>
+      </div>
+      <div class="summary">
+        <span>将创建</span>
+        <strong>{{.Draft.Request.RoleName}} / {{.Draft.Request.DatabaseName}}</strong>
+      </div>
+      <pre class="sql-preview"><code>{{.Draft.SQL}}</code></pre>
+      <div class="actions">
+        <form method="post" action="/execute">
+          <input type="hidden" name="draft_id" value="{{.Draft.ID}}">
+          <button class="button" type="submit">确认执行</button>
+        </form>
+        <a class="button secondary" href="/">返回修改</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
