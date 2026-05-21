@@ -29,12 +29,32 @@ body {
   padding: 48px 0;
 }
 
+.auth-shell {
+  width: min(420px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  align-items: center;
+  padding: 32px 0;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 28px;
   box-shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
+}
+
+.auth-panel {
+  box-shadow: 0 18px 45px rgba(31, 41, 55, 0.1);
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .eyebrow {
@@ -56,6 +76,46 @@ h1 {
   color: var(--muted);
 }
 
+.form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  font-weight: 650;
+}
+
+input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+
+input:focus {
+  outline: 3px solid rgba(23, 107, 95, 0.16);
+  border-color: var(--accent);
+}
+
+.alert {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.alert-danger {
+  color: var(--danger);
+  background: #fff4f2;
+  border-color: #f4b8b0;
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -74,4 +134,14 @@ h1 {
 
 .button:hover {
   background: var(--accent-hover);
+}
+
+.button.secondary {
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+
+.button.secondary:hover {
+  background: #f2f4f7;
 }
