@@ -159,6 +159,30 @@ input:focus {
   border-color: #f4b8b0;
 }
 
+.error-list {
+  margin-top: 12px;
+  padding: 10px 14px;
+  color: var(--danger);
+  border: 1px solid #f4b8b0;
+  border-radius: 6px;
+  background: #fffafa;
+}
+
+.error-list p {
+  margin: 4px 0;
+}
+
+.sql-preview {
+  margin: 18px 0 0;
+  padding: 18px;
+  overflow-x: auto;
+  color: #f8fafc;
+  background: #202833;
+  border-radius: 8px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
 .button {
   display: inline-flex;
   align-items: center;

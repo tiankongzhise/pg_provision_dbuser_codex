@@ -5,15 +5,18 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"time"
 
 	"pg_provision_dbuser_codex/internal/config"
 	"pg_provision_dbuser_codex/internal/password"
+	"pg_provision_dbuser_codex/internal/provision"
 	"pg_provision_dbuser_codex/internal/session"
 	webassets "pg_provision_dbuser_codex/web"
 )
 
 type Server struct {
 	cfg       config.Config
+	drafts    *provision.DraftStore
 	mux       *http.ServeMux
 	sessions  *session.Manager
 	templates *template.Template
@@ -27,6 +30,7 @@ func New(cfg config.Config) (*Server, error) {
 
 	server := &Server{
 		cfg:       cfg,
+		drafts:    provision.NewDraftStore(15 * time.Minute),
 		mux:       http.NewServeMux(),
 		sessions:  session.NewManager(cfg.AppSessionSecret),
 		templates: templates,
@@ -47,6 +51,8 @@ func (s *Server) routes() {
 
 	s.mux.Handle("GET /", s.requireAuth(http.HandlerFunc(s.handleHome)))
 	s.mux.Handle("GET /api/password", s.requireAuth(http.HandlerFunc(s.handlePassword)))
+	s.mux.Handle("POST /preview", s.requireAuth(http.HandlerFunc(s.handlePreview)))
+	s.mux.Handle("POST /execute", s.requireAuth(http.HandlerFunc(s.handleExecutePending)))
 	s.mux.HandleFunc("GET /login", s.handleLoginPage)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
 	s.mux.HandleFunc("POST /logout", s.handleLogout)
@@ -54,10 +60,17 @@ func (s *Server) routes() {
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "home.html", map[string]any{
+	s.render(w, "home.html", s.homeData(provision.Request{}, nil, ""))
+}
+
+func (s *Server) homeData(values provision.Request, errors []provision.FieldError, message string) map[string]any {
+	return map[string]any{
 		"Title":         "PostgreSQL 用户开通工具",
 		"TargetSummary": s.cfg.TargetSummary(),
-	})
+		"Values":        values.Normalized(),
+		"Errors":        errors,
+		"Message":       message,
+	}
 }
 
 func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +83,69 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"password": generated,
+	})
+}
+
+func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
+	username, ok := s.sessions.Username(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "表单解析失败", http.StatusBadRequest)
+		return
+	}
+
+	req := provision.Request{
+		RoleName:     r.FormValue("role_name"),
+		DatabaseName: r.FormValue("database_name"),
+		RolePassword: r.FormValue("role_password"),
+	}.Normalized()
+	if errors := provision.ValidateRequest(req); len(errors) > 0 {
+		req.RolePassword = ""
+		w.WriteHeader(http.StatusBadRequest)
+		s.render(w, "home.html", s.homeData(req, errors, "请修正表单后再预览 SQL"))
+		return
+	}
+
+	draft, err := s.drafts.Save(username, req)
+	if err != nil {
+		http.Error(w, "创建预览草稿失败", http.StatusInternalServerError)
+		return
+	}
+
+	s.render(w, "preview.html", map[string]any{
+		"Title":         "SQL 预览",
+		"TargetSummary": s.cfg.TargetSummary(),
+		"Draft":         draft,
+	})
+}
+
+func (s *Server) handleExecutePending(w http.ResponseWriter, r *http.Request) {
+	username, ok := s.sessions.Username(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "表单解析失败", http.StatusBadRequest)
+		return
+	}
+	draft, ok := s.drafts.Get(r.FormValue("draft_id"), username)
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		s.render(w, "result.html", map[string]any{
+			"Title": "执行结果",
+			"Error": "预览草稿不存在或已过期，请重新提交预览",
+		})
+		return
+	}
+
+	s.render(w, "result.html", map[string]any{
+		"Title": "执行结果",
+		"Draft": draft,
+		"Error": "PostgreSQL 执行流程将在下一步接入，当前已完成草稿绑定校验",
 	})
 }
 
