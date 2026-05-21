@@ -1,11 +1,13 @@
 package app
 
 import (
+	"encoding/json"
 	"html/template"
 	"io/fs"
 	"net/http"
 
 	"pg_provision_dbuser_codex/internal/config"
+	"pg_provision_dbuser_codex/internal/password"
 	"pg_provision_dbuser_codex/internal/session"
 	webassets "pg_provision_dbuser_codex/web"
 )
@@ -44,6 +46,7 @@ func (s *Server) routes() {
 	}
 
 	s.mux.Handle("GET /", s.requireAuth(http.HandlerFunc(s.handleHome)))
+	s.mux.Handle("GET /api/password", s.requireAuth(http.HandlerFunc(s.handlePassword)))
 	s.mux.HandleFunc("GET /login", s.handleLoginPage)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
 	s.mux.HandleFunc("POST /logout", s.handleLogout)
@@ -51,9 +54,22 @@ func (s *Server) routes() {
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	_ = s.templates.ExecuteTemplate(w, "home.html", map[string]any{
+	s.render(w, "home.html", map[string]any{
 		"Title":         "PostgreSQL 用户开通工具",
 		"TargetSummary": s.cfg.TargetSummary(),
+	})
+}
+
+func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request) {
+	generated, err := password.Generate(password.DefaultLength)
+	if err != nil {
+		http.Error(w, "生成密码失败", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"password": generated,
 	})
 }
 
@@ -62,7 +78,7 @@ func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	_ = s.templates.ExecuteTemplate(w, "login.html", map[string]any{
+	s.render(w, "login.html", map[string]any{
 		"Title": "管理员登录",
 	})
 }
@@ -76,7 +92,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	loginKey := r.FormValue("login_key")
 	if username != s.cfg.AppLoginUser || loginKey != s.cfg.AppLoginKey {
 		w.WriteHeader(http.StatusUnauthorized)
-		_ = s.templates.ExecuteTemplate(w, "login.html", map[string]any{
+		s.render(w, "login.html", map[string]any{
 			"Title": "管理员登录",
 			"Error": "账号或密钥错误",
 		})
@@ -95,6 +111,13 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte("ok"))
+}
+
+func (s *Server) render(w http.ResponseWriter, name string, data map[string]any) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := s.templates.ExecuteTemplate(w, name, data); err != nil {
+		http.Error(w, "页面渲染失败", http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) requireAuth(next http.Handler) http.Handler {

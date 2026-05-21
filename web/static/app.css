@@ -76,6 +76,27 @@ h1 {
   color: var(--muted);
 }
 
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8fafb;
+}
+
+.summary span {
+  color: var(--muted);
+}
+
+.summary strong {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .form {
   display: grid;
   gap: 16px;
@@ -101,6 +122,28 @@ input {
 input:focus {
   outline: 3px solid rgba(23, 107, 95, 0.16);
   border-color: var(--accent);
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .alert {
@@ -136,6 +179,11 @@ input:focus {
   background: var(--accent-hover);
 }
 
+.button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .button.secondary {
   color: var(--text);
   background: #ffffff;
@@ -144,4 +192,17 @@ input:focus {
 
 .button.secondary:hover {
   background: #f2f4f7;
+}
+
+@media (max-width: 720px) {
+  .topbar,
+  .summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .grid.two,
+  .input-row {
+    grid-template-columns: 1fr;
+  }
 }
