@@ -36,7 +36,7 @@
         <li class="step {{.Status}}">
           <div>
             <strong>{{.Name}}</strong>
-            {{if .SQL}}<code>{{.SQL}}</code>{{end}}
+            {{if .DisplaySQL}}<code>{{.DisplaySQL}}</code>{{end}}
             {{if .Error}}<p>{{.Error}}</p>{{end}}
           </div>
           <span>{{.Status}}</span>

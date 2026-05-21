@@ -48,7 +48,7 @@ func (s *Server) Routes() http.Handler {
 func (s *Server) routes() {
 	staticRoot, err := fs.Sub(webassets.Files, "static")
 	if err == nil {
-		s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticRoot))))
+		s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticRoot))))
 	}
 
 	s.mux.Handle("GET /", s.requireAuth(http.HandlerFunc(s.handleHome)))

@@ -17,10 +17,11 @@ const (
 )
 
 type StepResult struct {
-	Name   string
-	SQL    string
-	Status StepStatus
-	Error  string
+	Name       string
+	SQL        string
+	DisplaySQL string
+	Status     StepStatus
+	Error      string
 }
 
 type Result struct {
@@ -47,9 +48,10 @@ type Executor struct {
 }
 
 type plannedStep struct {
-	Name     string
-	SQL      string
-	Database string
+	Name       string
+	SQL        string
+	DisplaySQL string
+	Database   string
 }
 
 func NewExecutor(cfg config.PostgresConfig, factory RunnerFactory) *Executor {
@@ -85,7 +87,7 @@ func (e *Executor) Execute(ctx context.Context, req Request) Result {
 		result.failCheck("检查目标用户是否存在", fmt.Errorf("用户 %s 已存在，已停止执行", req.RoleName))
 		return result
 	}
-	result.addSuccess("检查目标用户是否存在", "")
+	result.addSuccess("检查目标用户是否存在", "", "")
 
 	if exists, err := runner.DatabaseExists(ctx, req.DatabaseName); err != nil {
 		result.failCheck("检查目标数据库是否存在", err)
@@ -94,18 +96,20 @@ func (e *Executor) Execute(ctx context.Context, req Request) Result {
 		result.failCheck("检查目标数据库是否存在", fmt.Errorf("数据库 %s 已存在，已停止执行", req.DatabaseName))
 		return result
 	}
-	result.addSuccess("检查目标数据库是否存在", "")
+	result.addSuccess("检查目标数据库是否存在", "", "")
 
 	for _, step := range e.stepPlanFn(req) {
-		err := runner.ExecAdmin(ctx, step.SQL)
+		var err error
 		if step.Database != "" {
 			err = runner.ExecDatabase(ctx, step.Database, step.SQL)
+		} else {
+			err = runner.ExecAdmin(ctx, step.SQL)
 		}
 		if err != nil {
-			result.addFailed(step.Name, step.SQL, err)
+			result.addFailed(step.Name, step.SQL, step.safeSQL(), err)
 			return result
 		}
-		result.addSuccess(step.Name, step.SQL)
+		result.addSuccess(step.Name, step.SQL, step.safeSQL())
 	}
 
 	result.Success = true
@@ -123,25 +127,34 @@ func (r *Result) failCheck(name string, err error) {
 	})
 }
 
-func (r *Result) addSuccess(name, sql string) {
+func (r *Result) addSuccess(name, sql, displaySQL string) {
 	r.Steps = append(r.Steps, StepResult{
-		Name:   name,
-		SQL:    sql,
-		Status: StepSuccess,
+		Name:       name,
+		SQL:        sql,
+		DisplaySQL: displaySQL,
+		Status:     StepSuccess,
 	})
 }
 
-func (r *Result) addFailed(name, sql string, err error) {
+func (r *Result) addFailed(name, sql, displaySQL string, err error) {
 	message := "未知错误"
 	if err != nil {
 		message = err.Error()
 	}
 	r.Steps = append(r.Steps, StepResult{
-		Name:   name,
-		SQL:    sql,
-		Status: StepFailed,
-		Error:  message,
+		Name:       name,
+		SQL:        sql,
+		DisplaySQL: displaySQL,
+		Status:     StepFailed,
+		Error:      message,
 	})
+}
+
+func (s plannedStep) safeSQL() string {
+	if s.DisplaySQL != "" {
+		return s.DisplaySQL
+	}
+	return s.SQL
 }
 
 func buildPlan(req Request) []plannedStep {
@@ -152,8 +165,9 @@ func buildPlan(req Request) []plannedStep {
 
 	return []plannedStep{
 		{
-			Name: "创建专属登录用户",
-			SQL:  fmt.Sprintf("CREATE USER %s WITH PASSWORD %s", role, password),
+			Name:       "创建专属登录用户",
+			SQL:        fmt.Sprintf("CREATE USER %s WITH PASSWORD %s", role, password),
+			DisplaySQL: fmt.Sprintf("CREATE USER %s WITH PASSWORD '******'", role),
 		},
 		{
 			Name: "创建专属数据库",
